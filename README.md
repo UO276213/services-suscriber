@@ -1,6 +1,6 @@
-# Push Weather Notificactions 
+# Push Weather Notificactions ⛅🔔
 ---
-### Proyecto para probar la [__API Push__](https://developer.mozilla.org/es/docs/Web/API/Push_API) con una simple página que permita a los clientes subscribirse para recibir notificaciones sobre el tiempo.
+### Proyecto para probar la [__API Push__](https://developer.mozilla.org/es/docs/Web/API/Push_API) con una simple página que permita a los clientes suscribirse para recibir notificaciones sobre el tiempo.
 
 La información del tiempo lo obtenemos mediante la [API de __OpenWeather__](https://openweathermap.org/api).
 La página web hace uso del framework del lenguaje __Python Django__.
