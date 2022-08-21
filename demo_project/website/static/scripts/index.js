@@ -1,6 +1,6 @@
 const subscribeBtn = document.getElementById('subscribeBtn')
 let weatherNotificationSW
-
+let isSubscribed = false
 document.addEventListener('readystatechange', () => {
     const permission = Notification.permission
     updateBtn(permission)
@@ -72,6 +72,8 @@ function sendSubscriptionToServer(subscription){
     })
     .then(() => {
         console.log('Usuario suscrito')
+        isSubscribed = true
+        subscribeBtn.textContent = 'Dejar de recibir notificaciones 👋'
     })
     .catch(() => {
         console.error('Se ha producido un error al suscribirse: ', e)
@@ -92,4 +94,8 @@ function urlBase64ToUint8Array(base64String) {
         outputArray[i] = rawData.charCodeAt(i);
     }
     return outputArray;
+}
+
+function unsuscribeHandler(){
+
 }
