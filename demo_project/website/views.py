@@ -40,4 +40,19 @@ def subscribe_user(request : HttpRequest):
         http_response.content = res_content
 
         return http_response
-    
+   
+# Elimina las suscripciones de la base de datos
+def unsubscribe_user(request : HttpRequest):
+    if request.method == 'DELETE':
+        id_subscription = request.body.decode("utf-8")
+        manager_subscription = Subscription.objects
+        http_response = HttpResponse()
+
+        try:
+            saved_subscription : Subscription = manager_subscription.get(end_point=id_subscription)
+            saved_subscription.delete()
+            http_response.content = f'Subscription con id {saved_subscription.end_point}'
+        except Subscription.DoesNotExist:
+            http_response.status_code = 410
+            
+        return HttpResponse(saved_subscription)

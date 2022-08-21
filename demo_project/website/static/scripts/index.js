@@ -1,6 +1,8 @@
 const subscribeBtn = document.getElementById('subscribeBtn')
 let weatherNotificationSW
 let isSubscribed = false
+let subscription
+
 document.addEventListener('readystatechange', () => {
     const permission = Notification.permission
     updateBtn(permission)
@@ -42,8 +44,9 @@ function handleReceiveNotifications() {
             userVisibleOnly : true,
             applicationServerKey : urlBase64ToUint8Array('BKH6dYuUAp_WTVs8bHtMSe3I2_yXsSpq2StaRJSR1Kvi9eF1dCfMKnZbSVZtoQMom7LgeiJx3bhxEsi_tTk2MME')
         })
-        .then((subscription) => {
-            sendSubscriptionToServer(subscription)
+        .then((new_subscription) => {
+            sendSubscriptionToServer(new_subscription)
+            subscription = new_subscription
         })
         .catch(console.error)
         updateBtn()
@@ -53,14 +56,14 @@ function handleReceiveNotifications() {
 function updateBtn(permission) {
     if (permission === 'granted') {
         subscribeBtn.textContent = 'Listo para recibir notificaciones 💫'
-        subscribeBtn.disabled = true
     } else if (permission === 'denied') {
         subscribeBtn.textContent = 'Permiso denegado 🚫'
         subscribeBtn.disabled = true
     }
 }
 
-function sendSubscriptionToServer(subscription){
+
+function sendSubscriptionToServer(new_subscription){
     fetch('http://localhost:8000/subscribe-user', {
         method: 'POST',
         headers: {
@@ -68,12 +71,13 @@ function sendSubscriptionToServer(subscription){
             // csrfmiddlewaretoken necesario para apsar la protección contra CSRF
             'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
         },
-        body: JSON.stringify(subscription),
+        body: JSON.stringify(new_subscription.toJSON()),
     })
     .then(() => {
         console.log('Usuario suscrito')
         isSubscribed = true
         subscribeBtn.textContent = 'Dejar de recibir notificaciones 👋'
+        subscribeBtn.addEventListener('click', unsuscribeHandler)
     })
     .catch(() => {
         console.error('Se ha producido un error al suscribirse: ', e)
@@ -98,4 +102,22 @@ function urlBase64ToUint8Array(base64String) {
 
 function unsuscribeHandler(){
 
+    fetch('http://localhost:8000/un_subscribe-user', {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            // csrfmiddlewaretoken necesario para apsar la protección contra CSRF
+            'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
+        },
+        body: subscription.endpoint,
+    })
+    .then(() => {
+        console.log('Suscripcion elimianda')
+        isSubscribed = false
+        subscribeBtn.textContent = 'Volver a recibir notificaciones 🔔'
+        subscribeBtn.addEventListener('click', handleReceiveNotifications)
+    })
+    .catch(() => {
+        console.error('Se ha producido un error al desuscribirse: ', e)
+    })
 }
