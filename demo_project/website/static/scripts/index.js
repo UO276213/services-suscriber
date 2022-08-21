@@ -4,14 +4,16 @@ let weatherNotificationSW
 document.addEventListener('readystatechange', () => {
     const permission = Notification.permission
     updateBtn(permission)
+    checkCompatibility()
 })
 
 function checkCompatibility() {
-    if ('ServiceWorker' in navigator && 'PushManager' in window) {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
         // Si el navegador es comptabile, procedemos a registrar el SW
         console.log('Navegador compatible')
         navigator.serviceWorker.register("/weatherNotificationSW.js")
         .then((serviceWorker) => {
+            // Guardamos el sw registrado
             weatherNotificationSW = serviceWorker
         })
         .catch(console.error)
@@ -36,7 +38,14 @@ subscribeBtn.addEventListener('click', () => {
 function handleReceiveNotifications() {
     if (weatherNotificationSW){
         console.log('Permiso concedido')
-        // TODO: Registrar en el servidor la suscripción
+        weatherNotificationSW.pushManager.subscribe({
+            userVisibleOnly : true,
+            applicationServerKey : urlBase64ToUint8Array('BKH6dYuUAp_WTVs8bHtMSe3I2_yXsSpq2StaRJSR1Kvi9eF1dCfMKnZbSVZtoQMom7LgeiJx3bhxEsi_tTk2MME')
+        })
+        .then((subscription) => {
+            sendSubscriptionToServer(subscription)
+        })
+        .catch(console.error)
         updateBtn()
     }
 }
@@ -49,4 +58,38 @@ function updateBtn(permission) {
         subscribeBtn.textContent = 'Permiso denegado 🚫'
         subscribeBtn.disabled = true
     }
+}
+
+function sendSubscriptionToServer(subscription){
+    fetch('http://localhost:8000/subscribe-user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            // csrfmiddlewaretoken necesario para apsar la protección contra CSRF
+            'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
+        },
+        body: JSON.stringify(subscription),
+    })
+    .then(() => {
+        console.log('Usuario suscrito')
+    })
+    .catch(() => {
+        console.error('Se ha producido un error al suscribirse: ', e)
+    })
+}
+
+// https://gist.github.com/Klerith/80abd742d726dd587f4bd5d6a0ab26b6
+function urlBase64ToUint8Array(base64String) {
+    let padding = '='.repeat((4 - base64String.length % 4) % 4);
+    let base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+
+    let rawData = window.atob(base64);
+    let outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
 }
