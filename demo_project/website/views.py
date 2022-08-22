@@ -5,6 +5,7 @@ from django.conf import settings
 from os import path
 from .models import Subscription
 from pywebpush import webpush, WebPushException
+from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
 
@@ -59,9 +60,11 @@ def unsubscribe_user(request : HttpRequest):
             
         return http_response
 
+@csrf_exempt # Permitimos saltarnos el csrf para los servicios. No muy recomendable
 def send_notifications(request : HttpRequest):
     if request.method == 'POST':
         http_response = HttpResponse()
+        print(request.body)
         data = json.loads(request.body)
         try:
             data_service_id = data['service_id']

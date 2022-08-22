@@ -1,9 +1,9 @@
 self.addEventListener('push', (event) => {
-
-    const title = 'Weather Notification';
+    const content = event.data.json()
+    const title = content.title
     const options = {
-        body: event.data.text(),
-        icon: '/static/favicon.png'
+        body: content.body,
+        icon: content.icon
     };
 
     const showNotificationPromise = self.registration.showNotification(title, options)
