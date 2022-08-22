@@ -54,5 +54,6 @@ def unsubscribe_user(request : HttpRequest):
             http_response.content = f'Subscription con id {saved_subscription.end_point}'
         except Subscription.DoesNotExist:
             http_response.status_code = 410
+            http_response.content = f'No existe la suscripción {id_subscription}'
             
-        return HttpResponse(saved_subscription)
+        return http_response
