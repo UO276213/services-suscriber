@@ -18,3 +18,10 @@ Accedemos al directorio `/demo_project` y ejecutamos el siguiente comando.
 ```
 py .\manage.py runserver
 ```
+### Paso 4 - Accedemos a `http://localhost:8000`
+Pulsamos sobre el botón _Recibir notificaciones🔔_ y en la ventana que aparece, pulsamos permitir. Una vez hecho esto, ya estaremos listos para obtener notificaciones.
+
+### Paso 5 - Enviar notificaciones
+Para mostrar un ejemplo, existe el archivo `/demo_project/weather_service.py` que permite obtener el tiempo y notificar a los clientes suscritos.
+
+Para ejecutar este servicio, necesitaremos una API key de OpenWeather. En el script se encuentra mi _key_ 🙃, pero, en caso de no funcionar esta, se puede obtener una gratuita al registrarse en https://home.openweathermap.org/users/sign_up_
