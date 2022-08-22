@@ -8,9 +8,10 @@ La página web hace uso del framework del lenguaje __Python Django__.
 ## Cómo probar la demo
 ### Paso 1 - Clonar el repositorio
 ```git clone https://github.com/UO276213/push-weather-notifications.git```
-### Paso 2 - Instalar Django
+### Paso 2 - Instalar Django y la depencia [pywebpush](https://github.com/web-push-libs/pywebpush)
 ```
 python -m pip install Django
+python -m pip install pywebpush
 ```
 ### Paso 3 - Iniciar el servidor
 Accedemos al directorio `/demo_project` y ejecutamos el siguiente comando.

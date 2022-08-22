@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.conf import settings
 from os import path
 from .models import Subscription
+from pywebpush import webpush, WebPushException
 
 # Create your views here.
 
@@ -56,4 +57,48 @@ def unsubscribe_user(request : HttpRequest):
             http_response.status_code = 410
             http_response.content = f'No existe la suscripción {id_subscription}'
             
+        return http_response
+
+def send_notifications(request : HttpRequest):
+    if request.method == 'POST':
+        http_response = HttpResponse()
+        data = json.loads(request.body)
+        try:
+            data_service_id = data['service_id']
+
+             # TODO: Verificar que el ID del servicio está dentro de los servicios permitidos
+            print(data_service_id)
+
+            # Para permitir difererentes servicios, habría que filtrar las suscripciones por servicio suscrito
+            subscriptions = Subscription.objects.all()
+
+            data = {
+                    'title' :data['title'],
+                    'body' : data['body'],
+                    'icon' : data['icon']
+            }
+
+            for suscription in subscriptions:
+                # Enviando mensaje a los suscriptores
+                webpush(
+                    subscription_info={
+                        'endpoint' : str(suscription.end_point),
+                        'keys': {
+                            'p256dh' : str(suscription.subscription_pkey),
+                            'auth' : str(suscription.auth_key)
+                        }
+                    },
+                    data= json.dumps(data),
+                    vapid_private_key='GfFUOwHGvlVfBfALVhI6-PatG1e5o383J_ZTvvJZKoc',
+                    vapid_claims={
+                        'sub': 'mailto:email@email.com'
+                    }
+                )
+        except WebPushException as e:
+            http_response.status_code = 503
+            http_response.content = e.message
+        except KeyError as e:
+            http_response.status_code = 400
+            http_response.content = 'Cuerpo mal formado: ' + str(e)
+
         return http_response
