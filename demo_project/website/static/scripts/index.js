@@ -3,9 +3,10 @@ let weatherNotificationSW // Service Worker encargado de gestionar las notificac
 let subscription // Refencia a la suscripción
 
 // Al cargar la página, comprobamos la compatibilidad e intentamos obtener una referencia a la suscripción
-document.addEventListener('readystatechange', async () => {
-    await checkCompatibility()
-    updateBtn()
+document.addEventListener('readystatechange', () => {
+    checkCompatibility().then(
+        () => updateBtn()
+    )
 })
 
 async function checkCompatibility() {
@@ -145,13 +146,11 @@ function unsuscribeHandler() {
         body: subscription.endpoint,
     })
         .then((res) => {
-            if (res.ok) {
-                console.log('Suscripcion elimianda')
-                // Eliminamos la referencia local
-                subscription.unsubscribe()
-                subscription = null
-                updateBtn()
-            } else {
+            console.log('Suscripcion elimianda')
+            subscription.unsubscribe()
+            subscription = null
+            updateBtn()
+            if (!res.ok && res.status != 410) {
                 res.text().then(error => {
                     throw new Error(error)
                 })
