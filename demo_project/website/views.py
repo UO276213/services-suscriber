@@ -83,22 +83,30 @@ def send_notifications(request : HttpRequest):
 
             for suscription in subscriptions:
                 # Enviando mensaje a los suscriptores
-                webpush(
-                    subscription_info={
-                        'endpoint' : str(suscription.end_point),
-                        'keys': {
-                            'p256dh' : str(suscription.subscription_pkey),
-                            'auth' : str(suscription.auth_key)
+                try:
+                    webpush(
+                        subscription_info={
+                            'endpoint' : str(suscription.end_point),
+                            'keys': {
+                                'p256dh' : str(suscription.subscription_pkey),
+                                'auth' : str(suscription.auth_key)
+                            }
+                        },
+                        data= json.dumps(data),
+                        vapid_private_key='GfFUOwHGvlVfBfALVhI6-PatG1e5o383J_ZTvvJZKoc',
+                        vapid_claims={
+                            'sub': 'mailto:email@email.com'
                         }
-                    },
-                    data= json.dumps(data),
-                    vapid_private_key='GfFUOwHGvlVfBfALVhI6-PatG1e5o383J_ZTvvJZKoc',
-                    vapid_claims={
-                        'sub': 'mailto:email@email.com'
-                    }
-                )
+                    )
+                except WebPushException as e:
+                    # Si el Push Service lanza un error Gone 410 es que el usuario ya no está suscrito
+                    if e.response.status_code == 410:
+                        # Borramos la suscripción de nuestra BD
+                        suscription.delete()
+                    else:
+                        raise e
         except WebPushException as e:
-            http_response.status_code = 503
+            http_response.status_code = e.response.status_code
             http_response.content = e.message
         except KeyError as e:
             http_response.status_code = 400
