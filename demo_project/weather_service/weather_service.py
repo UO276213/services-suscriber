@@ -9,7 +9,7 @@ ICON_URL = ' http://openweathermap.org/img/wn/'
 # Para obtener una API key: https://home.openweathermap.org/users/sign_up o en el primer ejemplo de https://openweathermap.org/weather-conditions
 OPENWEATHER_API = 'f64b712dfd42ced85481f46f74d13159'
 
-NOTIFIER_URL = 'http://localhost:8000/send-notifications'
+NOTIFIER_URL = 'http://localhost:8000/api/v1/send-notifications'
 
 # Realizar consulta a la API
 weather_data = json.loads(request('GET', f'{BASE_WEATHER_URL}?q={LOCATION}&units=metric&lang=es&appid={OPENWEATHER_API}').content)

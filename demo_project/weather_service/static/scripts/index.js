@@ -77,7 +77,7 @@ function updateBtn() {
 
 // Realiza un POST al servidor para guardar la suscrición
 function sendSubscriptionToServer() {
-    fetch('/subscribe-user', {
+    fetch('/api/v1/subscribe-user', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ function urlBase64ToUint8Array(base64String) {
 
 function unsuscribeHandler() {
 
-    fetch('/un_subscribe-user', {
+    fetch('/api/v1/un_subscribe-user', {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
