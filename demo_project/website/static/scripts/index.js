@@ -1,80 +1,62 @@
 const subscribeBtn = document.getElementById('subscribeBtn')
 let weatherNotificationSW // Service Worker encargado de gestionar las notificaciones entrantes
-let subscription // Refencia a la suscripción
+let subscription // Refencia a la suscripción en el cliente
 
-// Al cargar la página, comprobamos la compatibilidad e intentamos obtener una referencia a la suscripción
-document.addEventListener('readystatechange', () => {
-    checkCompatibility().then(
-        () => updateBtn()
-    )
-})
+// Comprobamos la compatibilidad
+checkCompatibility()
+    .then(() => {
+        if (Notification.permission !== 'granted')
+            subscribeBtn.onclick = askPermissions
+        else {
+            getSubscription().then((existingSubscription) => {
+                // Intentamos obtener suscripciones existentes
+                subscription = existingSubscription
+                updateBtn()
+            })
+        }
+    })
+    .catch((e) => {
+        console.error(e)
+        subscribeBtn.textContent = 'Navegador no compatible ⚠️'
+        subscribeBtn.disabled = true
+    })
+
 
 async function checkCompatibility() {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
-        // Si el navegador es comptabile, procedemos a obtener sw
         console.log('Navegador compatible')
-        weatherNotificationSW = await navigator.serviceWorker.getRegistration()
-        // Intentamos obtener una suscripción existente
-        subscription = await weatherNotificationSW?.pushManager.getSubscription()
     } else {
-        console.log('Navegador incomptatible')
-        subscribeBtn.textContent = 'Navegador no compatible ⚠️'
-        subscribeBtn.disabled = true
+        // Si el navegador no es compatible, lanzamos un error 
+        throw new Error('Navegador incompatible')
     }
 }
 
-async function registerNewServiceWorker() {
-    return navigator.serviceWorker.register("/weatherNotificationSW.js")
-        .then((serviceWorker) => {
-            return serviceWorker
-        })
-        .catch(console.error)
+// Devuveulve una suscripción existente
+async function getSubscription() {
+    weatherNotificationSW = await navigator.serviceWorker.getRegistration()
+    return weatherNotificationSW?.pushManager.getSubscription()
 }
 
+// Devuelve una nueva suscripción
+async function getNewSubscription() {
+    console.log('Creando suscrición nueva')
+    await navigator.serviceWorker.register("/weatherNotificationSW.js")
+    // Esperamos a que el service worker esté activo
+    weatherNotificationSW = await navigator.serviceWorker.ready
+    return weatherNotificationSW.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array('BKH6dYuUAp_WTVs8bHtMSe3I2_yXsSpq2StaRJSR1Kvi9eF1dCfMKnZbSVZtoQMom7LgeiJx3bhxEsi_tTk2MME')
+    })
+}
 
-subscribeBtn.onclick = async () => {
-    if (Notification.permission !== 'granted') {
-        // Si el usuario concede los permisos, procedemos a registrar un nuevo sw
-        let permission = await Notification.requestPermission() === 'granted'
-        if (permission) {
-            registerNewServiceWorker().then((newServiceWorker) => {
-                // Guardamos el sw registrado
-                weatherNotificationSW = newServiceWorker
-                handleReceiveNotifications()
-            })
-        } else {
-            console.log('Permiso denegado')
-        }
-    } else {
-        if (subscription)
-            unsuscribeHandler()
-        else
-            registerNewServiceWorker().then((newServiceWorker) => {
-                // Guardamos el sw registrado
-                weatherNotificationSW = newServiceWorker
-                handleReceiveNotifications()
-            })
+// Solicita permisos de notificación, si el usuario lo permite, crea una nueva suscripción y la envía al servidor
+async function askPermissions() {
+    let permission = await Notification.requestPermission()
+    if (permission === "granted") {
+        subscription = await getNewSubscription()
+        sendSubscriptionToServer()
     }
-
     updateBtn()
-}
-
-// Se encarga de la lógica de crear una suscripción y enviarla al servidor
-function handleReceiveNotifications() {
-    if (weatherNotificationSW) {
-        weatherNotificationSW.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array('BKH6dYuUAp_WTVs8bHtMSe3I2_yXsSpq2StaRJSR1Kvi9eF1dCfMKnZbSVZtoQMom7LgeiJx3bhxEsi_tTk2MME')
-        })
-            .then((new_subscription) => {
-                sendSubscriptionToServer(new_subscription)
-                subscription = new_subscription
-            })
-            .catch(console.error)
-        updateBtn()
-    } else {
-        console.error('No se puede recibir suscribir, falta el SW')
-    }
 }
 
 function updateBtn() {
@@ -83,21 +65,26 @@ function updateBtn() {
         subscribeBtn.disabled = true
     } else if (subscription) {
         subscribeBtn.textContent = 'Dejar de recibir notificaciones 👋'
+        subscribeBtn.onclick = unsuscribeHandler
     } else {
         subscribeBtn.textContent = 'Recibir notificaciones🔔'
+        subscribeBtn.onclick = async () => {
+            subscription = await getNewSubscription()
+            sendSubscriptionToServer()
+        }
     }
 }
 
 // Realiza un POST al servidor para guardar la suscrición
-function sendSubscriptionToServer(new_subscription) {
-    fetch('http://localhost:8000/subscribe-user', {
+function sendSubscriptionToServer() {
+    fetch('/subscribe-user', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             // csrfmiddlewaretoken necesario para apsar la protección contra CSRF
             'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
         },
-        body: JSON.stringify(new_subscription.toJSON()),
+        body: JSON.stringify(subscription.toJSON()),
     })
         .then((res) => {
             if (res.ok) {
@@ -136,7 +123,7 @@ function urlBase64ToUint8Array(base64String) {
 
 function unsuscribeHandler() {
 
-    fetch('http://localhost:8000/un_subscribe-user', {
+    fetch('/un_subscribe-user', {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -145,16 +132,10 @@ function unsuscribeHandler() {
         },
         body: subscription.endpoint,
     })
-        .then((res) => {
+        .then(() => {
             console.log('Suscripcion elimianda')
             subscription.unsubscribe()
             subscription = null
-            updateBtn()
-            if (!res.ok && res.status != 410) {
-                res.text().then(error => {
-                    throw new Error(error)
-                })
-            }
         })
         .catch((error) => {
             console.error('Se ha producido un error al desuscribirse: ', error)
